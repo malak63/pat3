@@ -1,81 +1,100 @@
 #include <iostream>
-#include <vector>
-#include <iomanip>
+#include <string>
 using namespace std;
 
-struct Order {
-    int id;
-    string customer;
-    int quantity;
-    float price;
-};
+const int SIZE = 50; // maximum number of orders
 
+// Parallel arrays
+int orderID[SIZE];
+string customerName[SIZE];
+int numMagwinya[SIZE];
+double totalAmount[SIZE];
 
-vector<Order> orders = {
-    {101, "Thabo", 3, 15.75},
-    {102, "Lerato", 5, 30.50},
-    {103, "Nomvula", 2, 10.00},
-    {104, "Sipho", 4, 22.00},
-    {105, "Bongani", 6, 40.25},
-    {106, "Lindiwe", 1, 5.50},
-    {107, "Jabulani", 3, 18.00},
-    {108, "Ayanda", 2, 12.17},
-    {109, "Kgosi", 6, 28.00},
-    {110, "Refilwe", 4, 24.50}
-};
+int orderCount = 0; // number of current orders
 
+// Function to add an order
 void addOrder() {
-    Order newOrder;
-    cout << "Enter Order ID: ";  "Enter Customer Name: "; "Enter Quantity: ";  "Enter Price per Unit: "; "Order added successfully.\n";
-    cin >> newOrder.id; newOrder.customer; newOrder.quantity; newOrder.price;
- 
-    orders.push_back(newOrder);
-   
-
-void displayOrders() {
-    cout << left << setw(10) << "ID" << setw(15) << "Customer" << setw(10)
-         << "Quantity" << setw(10) << "Price" << endl;
-    for (const auto& order : orders) {
-        cout << left << setw(10) << order.id << setw(15) << order.customer << setw(10) << order.quantity << setw(10) << fixed << setprecision(2)  << order.price << endl;
+    if (orderCount >= SIZE) {
+        cout << "⚠ Cannot add more orders, storage is full!" << endl;
+        return;
     }
+
+    cout << "\nEnter details for new order:" << endl;
+    cout << "Order ID: ";
+    cin >> orderID[orderCount];
+    cout << "Customer Name: ";
+    cin >> customerName[orderCount];
+    cout << "Number of Magwinyas: ";
+    cin >> numMagwinya[orderCount];
+
+    // Each Magwinya costs R5
+    totalAmount[orderCount] = numMagwinya[orderCount] * 5.0;
+
+    orderCount++;
+    cout << "✅ Order added successfully!" << endl;
 }
 
-void findOrderById() {
-    int id;
+// Function to display all orders
+void displayOrders() {
+    if (orderCount == 0) {
+        cout << "No orders found!" << endl;
+        return;
+    }
+
+    cout << "\nMagwinya Magic Orders" << endl;
+    cout << "-------------------------------------------" << endl;
+    cout << "OrderID\tCustomer\tMagwinyas\tTotal (R)" << endl;
+    cout << "-------------------------------------------" << endl;
+
+    for (int i = 0; i < orderCount; i++) {
+        cout << orderID[i] << "\t"
+             << customerName[i] << "\t\t"
+             << numMagwinya[i] << "\t\t"
+             << totalAmount[i] << endl;
+    }
+    cout << "-------------------------------------------" << endl;
+}
+
+// Function to search for an order by ID
+void searchOrder() {
+    int searchID;
     cout << "Enter Order ID to search: ";
-    cin >> id;
-    bool found = false;
-    for (const auto& order : orders) {
-        if (order.id == id) {
-            cout << "\nOrder Found:\n"; "Customer: " << order.customer << "\n"; "Quantity: " << order.quantity << "\n"; "Price per unit: " << fixed << setprecision(2) << order.price << "\n"; "Total: " << order.quantity * order.price << "\n";
-            found = true;
-            break;
+    cin >> searchID;
+
+    for (int i = 0; i < orderCount; i++) {
+        if (orderID[i] == searchID) {
+            cout << "✅ Order found!" << endl;
+            cout << "Order " << orderID[i] << " was placed by "
+                 << customerName[i] << ", who ordered "
+                 << numMagwinya[i] << " Magwinyas, totaling R"
+                 << totalAmount[i] << "." << endl;
+            return;
         }
     }
-    if (!found) {
-        cout << "Order not found.\n";
-    }
-}
-
-void calculateRevenue() {
-    float total = 0;
-    for (const auto& order : orders) {
-        total += order.quantity * order.price;
-    }
-    cout << "Total Revenue: " << fixed << setprecision(2) << total << "\n";
+    cout << "⚠ Order with ID " << searchID << " not found!" << endl;
 }
 
 int main() {
     int choice;
+
     do {
-        cout << "\n=== Order Management Menu ===\n";  "1. Add New Order\n"; "2. Display All Orders\n";  "3. Find Order by ID\n";  "4. Calculate Total Revenue\n"; "5. Exit\n";  "Enter your choice: ";
+        cout << "\n====== Magwinya Magic Order Management ======" << endl;
+        cout << "1. Add New Order" << endl;
+        cout << "2. Display All Orders" << endl;
+        cout << "3. Search Order by ID" << endl;
+        cout << "0. Exit" << endl;
+        cout << "Choose an option: ";
         cin >> choice;
 
         switch (choice) {
-            case 1: addOrder(); break; case 2: displayOrders(); break; case 3: findOrderById(); break;   case 4: calculateRevenue(); break;  case 5: cout << "Exiting program.\n"; break;
-            default: cout << "Invalid choice. Try again.\n";
+            case 1: addOrder(); break;
+            case 2: displayOrders(); break;
+            case 3: searchOrder(); break;
+            case 0: cout << "👋 Exiting system. Goodbye!" << endl; break;
+            default: cout << "⚠ Invalid choice. Try again." << endl;
         }
-    } while (choice != 5);
+
+    } while (choice != 0);
 
     return 0;
 }
