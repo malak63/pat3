@@ -1,167 +1,122 @@
-/*
-  NC(V) Robotics and Industrial Automation - Level 4
-  CBPIS Conveyor Belt Project
-
-  Components:
-  - Arduino Uno
-  - TCS3200 Colour Sensor
-  - L298N Motor Driver
-  - DC Motor / Conveyor Belt
-  - Servo Motor (Actuator)
-  - I2C OLED Display
-
-  PIN CONNECTIONS:
-  TCS3200:
-  S0  -> D4
-  S1  -> D5
-  S2  -> D6
-  S3  -> D7
-  OUT -> D8
-
-  L298N:
-  IN1 -> D9
-  IN2 -> D10
-  ENA -> D11
-
-  Servo:
-  Signal -> D3
-
-  OLED:
-  SDA -> A4
-  SCL -> A5
-*/
-
 #include <Wire.h>
+#include <Servo.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <Servo.h>
 
-// ---------------- OLED ----------------
+// ================= OLED =================
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// ---------------- Servo ----------------
+// ================= SERVO =================
 Servo actuator;
+const int servoPin = 3;
 
-// ---------------- TCS3200 ----------------
+// ================= TCS3200 =================
 const int S0 = 4;
 const int S1 = 5;
 const int S2 = 6;
 const int S3 = 7;
 const int sensorOut = 8;
 
-// ---------------- Motor Driver ----------------
+// ================= L298N =================
 const int IN1 = 9;
 const int IN2 = 10;
 const int ENA = 11;
 
-// ---------------- Variables ----------------
+// ================= VARIABLES =================
 int redValue;
 int greenValue;
 int blueValue;
 
 int objectCount = 0;
-
-// Motor speed: 0 - 255
 int motorSpeed = 180;
 
 
-// =================================================
-// SETUP
-// =================================================
-void setup()
-{
+// ================= SETUP =================
+void setup() {
+
   Serial.begin(9600);
 
-  // Colour sensor pins
+  // TCS3200
   pinMode(S0, OUTPUT);
   pinMode(S1, OUTPUT);
   pinMode(S2, OUTPUT);
   pinMode(S3, OUTPUT);
   pinMode(sensorOut, INPUT);
 
-  // Set TCS3200 frequency scaling to 20%
+  // TCS3200 frequency scaling = 20%
   digitalWrite(S0, HIGH);
   digitalWrite(S1, LOW);
 
-  // Motor pins
+  // L298N
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(ENA, OUTPUT);
 
   // Servo
-  actuator.attach(3);
+  actuator.attach(servoPin);
   actuator.write(90);
 
-  // Start OLED
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
-  {
-    Serial.println("OLED not found!");
-    while (true);
+  // OLED
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED ERROR");
+    while (1);
   }
 
   display.clearDisplay();
-  display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
 
   display.setCursor(0, 0);
-  display.println("CBPIS CONVEYOR");
-  display.setCursor(0, 15);
-  display.println("System Starting...");
+  display.println("CONVEYOR SYSTEM");
+
+  display.setCursor(0, 20);
+  display.println("System Ready");
+
   display.display();
 
   delay(2000);
 
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.println("System Ready");
-  display.display();
-
-  delay(1000);
-
   // Start conveyor
-  startConveyor();
+  startMotor();
 }
 
 
-// =================================================
-// MAIN LOOP
-// =================================================
-void loop()
-{
-  // Read colour
+// ================= MAIN LOOP =================
+void loop() {
+
+  // Read colours
   redValue = readRed();
   greenValue = readGreen();
   blueValue = readBlue();
 
-  Serial.print("Red: ");
+  // Determine colour
+  String colour = detectColour();
+
+  Serial.print("R: ");
   Serial.print(redValue);
 
-  Serial.print(" Green: ");
+  Serial.print(" G: ");
   Serial.print(greenValue);
 
-  Serial.print(" Blue: ");
+  Serial.print(" B: ");
   Serial.println(blueValue);
-
-  // Determine object colour
-  String colour = detectColour();
 
   // Display information
   display.clearDisplay();
 
-  display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println("CBPIS CONVEYOR");
+  display.println("CONVEYOR SYSTEM");
 
   display.setCursor(0, 15);
-  display.print("Object: ");
+  display.print("Colour: ");
   display.println(colour);
 
   display.setCursor(0, 30);
-  display.print("Objects: ");
+  display.print("Count: ");
   display.println(objectCount);
 
   display.setCursor(0, 45);
@@ -169,47 +124,50 @@ void loop()
 
   display.display();
 
-  // If an object is detected
-  if (colour != "NONE")
-  {
+
+  // Object detected
+  if (colour != "NONE") {
+
     objectCount++;
 
     // Stop conveyor
-    stopConveyor();
+    stopMotor();
 
-    delay(300);
+    delay(500);
 
-    // Activate actuator depending on colour
-    if (colour == "RED")
-    {
+
+    // Move actuator
+    if (colour == "RED") {
+
       actuator.write(30);
       delay(700);
       actuator.write(90);
+
     }
 
-    else if (colour == "GREEN")
-    {
+    else if (colour == "GREEN") {
+
       actuator.write(150);
       delay(700);
       actuator.write(90);
+
     }
 
-    else if (colour == "BLUE")
-    {
+    else if (colour == "BLUE") {
+
       actuator.write(60);
       delay(700);
       actuator.write(90);
+
     }
 
-    // Wait for servo to return
-    delay(300);
+    delay(500);
 
     // Start conveyor again
-    startConveyor();
+    startMotor();
 
-    // Display sorting message
+    // Show sorting information
     display.clearDisplay();
-    display.setTextSize(1);
 
     display.setCursor(0, 0);
     display.println("OBJECT SORTED");
@@ -219,24 +177,21 @@ void loop()
     display.println(colour);
 
     display.setCursor(0, 40);
-    display.print("Count: ");
+    display.print("Total: ");
     display.println(objectCount);
 
     display.display();
 
-    delay(800);
+    delay(1000);
   }
 
-  delay(100);
+  delay(200);
 }
 
 
-// =================================================
-// MOTOR FUNCTIONS
-// =================================================
+// ================= MOTOR START =================
+void startMotor() {
 
-void startConveyor()
-{
   digitalWrite(IN1, HIGH);
   digitalWrite(IN2, LOW);
 
@@ -244,8 +199,9 @@ void startConveyor()
 }
 
 
-void stopConveyor()
-{
+// ================= MOTOR STOP =================
+void stopMotor() {
+
   analogWrite(ENA, 0);
 
   digitalWrite(IN1, LOW);
@@ -253,12 +209,9 @@ void stopConveyor()
 }
 
 
-// =================================================
-// COLOUR SENSOR FUNCTIONS
-// =================================================
+// ================= READ RED =================
+int readRed() {
 
-int readRed()
-{
   digitalWrite(S2, LOW);
   digitalWrite(S3, LOW);
 
@@ -268,8 +221,9 @@ int readRed()
 }
 
 
-int readGreen()
-{
+// ================= READ GREEN =================
+int readGreen() {
+
   digitalWrite(S2, HIGH);
   digitalWrite(S3, HIGH);
 
@@ -279,8 +233,9 @@ int readGreen()
 }
 
 
-int readBlue()
-{
+// ================= READ BLUE =================
+int readBlue() {
+
   digitalWrite(S2, LOW);
   digitalWrite(S3, HIGH);
 
@@ -290,44 +245,41 @@ int readBlue()
 }
 
 
-// =================================================
-// COLOUR DETECTION
-// =================================================
+// ================= COLOUR DETECTION =================
+String detectColour() {
 
-String detectColour()
-{
-  // Prevent invalid readings
-  if (redValue == 0 || greenValue == 0 || blueValue == 0)
-  {
+  // No valid reading
+  if (redValue == 0 ||
+      greenValue == 0 ||
+      blueValue == 0) {
+
     return "NONE";
   }
 
-  /*
-    TCS3200 normally gives a LOWER pulse period
-    for a stronger colour.
 
-    These values are starting values.
-    They may need calibration for your sensor,
-    lighting and objects.
-  */
-
+  // RED
   if (redValue < greenValue * 0.75 &&
-      redValue < blueValue * 0.75)
-  {
+      redValue < blueValue * 0.75) {
+
     return "RED";
   }
 
+
+  // GREEN
   if (greenValue < redValue * 0.75 &&
-      greenValue < blueValue * 0.75)
-  {
+      greenValue < blueValue * 0.75) {
+
     return "GREEN";
   }
 
+
+  // BLUE
   if (blueValue < redValue * 0.75 &&
-      blueValue < greenValue * 0.75)
-  {
+      blueValue < greenValue * 0.75) {
+
     return "BLUE";
   }
+
 
   return "NONE";
 }
